@@ -1,0 +1,16 @@
+{
+  "train_fraction": 0.8,
+  "target_variable": "congestion_level",
+  "feature_columns": [
+    "avg_speed",
+    "vehicle_count",
+    "pm25",
+    "temperature",
+    "humidity",
+    "wind_speed",
+    "rainfall",
+    "speed_drop",
+    "humidity_temp_interaction"
+  ]
+}
+
