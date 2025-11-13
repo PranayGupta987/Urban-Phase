@@ -1,0 +1,16 @@
+{
+  "name": "urbanpulse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Sustainable City Twin",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && uvicorn main:app --reload",
+    "install:frontend": "npm --prefix frontend install",
+    "install:backend": "cd backend && pip install -r requirements.txt"
+  },
+  "keywords": ["urban-planning", "ai", "sustainability", "digital-twin"],
+  "author": "",
+  "license": "MIT"
+}
