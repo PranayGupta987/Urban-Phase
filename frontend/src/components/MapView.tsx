@@ -21,6 +21,7 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
       container: mapContainer.current,
       style: {
         version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
           osm: {
             type: 'raster',
@@ -42,9 +43,16 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
     });
 
     map.current.on('load', () => {
-      loadTrafficData();
-      loadAQIData();
+      setTimeout(() => {
+        loadTrafficData();
+        loadAQIData();
+      }, 50);
     });
+
+    // Trigger map resize after mount to fix layout issues
+    setTimeout(() => {
+      map.current?.resize();
+    }, 200);
 
     return () => {
       map.current?.remove();
@@ -52,14 +60,21 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
   }, []);
 
   const loadTrafficData = async () => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+
     const data = await api.getTrafficData();
     setTrafficData(data);
 
-    if (map.current && !map.current.getSource('traffic')) {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+    if (map.current.getSource('traffic')) return;
+
+    try {
       map.current.addSource('traffic', {
         type: 'geojson',
         data: data as GeoJSON.FeatureCollection,
       });
+
+      if (!map.current.isStyleLoaded()) return;
 
       map.current.addLayer({
         id: 'traffic-lines',
@@ -78,18 +93,27 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
           'line-opacity': 0.8,
         },
       });
+    } catch (error) {
+      console.error('Error loading traffic data:', error);
     }
   };
 
   const loadAQIData = async () => {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+
     const data = await api.getAQIData();
     setAqiData(data);
 
-    if (map.current && !map.current.getSource('aqi')) {
+    if (!map.current || !map.current.isStyleLoaded()) return;
+    if (map.current.getSource('aqi')) return;
+
+    try {
       map.current.addSource('aqi', {
         type: 'geojson',
         data: data as GeoJSON.FeatureCollection,
       });
+
+      if (!map.current.isStyleLoaded()) return;
 
       map.current.addLayer({
         id: 'aqi-circles',
@@ -120,7 +144,10 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
         },
       });
 
+      if (!map.current.isStyleLoaded()) return;
+
       map.current.on('click', 'aqi-circles', (e) => {
+        if (!map.current || !map.current.isStyleLoaded()) return;
         if (!e.features || !e.features[0]) return;
 
         const properties = e.features[0].properties;
@@ -136,41 +163,65 @@ function MapView({ activeLayer, simulationData }: MapViewProps) {
               <p class="text-sm"><strong>PM10:</strong> ${properties?.pm10} µg/m³</p>
             </div>
           `)
-          .addTo(map.current!);
+          .addTo(map.current);
       });
 
       map.current.on('mouseenter', 'aqi-circles', () => {
-        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        if (map.current && map.current.isStyleLoaded()) {
+          map.current.getCanvas().style.cursor = 'pointer';
+        }
       });
 
       map.current.on('mouseleave', 'aqi-circles', () => {
-        if (map.current) map.current.getCanvas().style.cursor = '';
+        if (map.current && map.current.isStyleLoaded()) {
+          map.current.getCanvas().style.cursor = '';
+        }
       });
+    } catch (error) {
+      console.error('Error loading AQI data:', error);
     }
   };
 
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !map.current.isStyleLoaded()) return;
 
     if (activeLayer === 'traffic') {
-      map.current.setLayoutProperty('traffic-lines', 'visibility', 'visible');
-      map.current.setLayoutProperty('aqi-circles', 'visibility', 'none');
+      if (map.current.getLayer('traffic-lines')) {
+        map.current.setLayoutProperty('traffic-lines', 'visibility', 'visible');
+      }
+      if (map.current.getLayer('aqi-circles')) {
+        map.current.setLayoutProperty('aqi-circles', 'visibility', 'none');
+      }
     } else {
-      map.current.setLayoutProperty('traffic-lines', 'visibility', 'none');
-      map.current.setLayoutProperty('aqi-circles', 'visibility', 'visible');
+      if (map.current.getLayer('traffic-lines')) {
+        map.current.setLayoutProperty('traffic-lines', 'visibility', 'none');
+      }
+      if (map.current.getLayer('aqi-circles')) {
+        map.current.setLayoutProperty('aqi-circles', 'visibility', 'visible');
+      }
     }
   }, [activeLayer]);
 
   useEffect(() => {
-    if (!map.current || !simulationData) return;
+    if (!map.current || !map.current.isStyleLoaded() || !simulationData) return;
 
     const source = map.current.getSource('traffic') as maplibregl.GeoJSONSource;
     if (source) {
-      source.setData(simulationData.after as GeoJSON.FeatureCollection);
+      try {
+        source.setData(simulationData.after as GeoJSON.FeatureCollection);
+      } catch (error) {
+        console.error('Error updating simulation data:', error);
+      }
     }
   }, [simulationData]);
 
-  return <div ref={mapContainer} className="absolute inset-0" />;
+  return (
+    <div
+      ref={mapContainer}
+      className="absolute inset-0 w-full h-full"
+      style={{ zIndex: 0 }}
+    />
+  );
 }
 
 export default MapView;
