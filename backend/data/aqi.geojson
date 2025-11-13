@@ -1,0 +1,90 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.1278, 51.5074]
+      },
+      "properties": {
+        "aqi": 65,
+        "category": "Moderate",
+        "pm25": 22.5,
+        "pm10": 35.2,
+        "no2": 45.3,
+        "o3": 55.1,
+        "station": "Central Station",
+        "color": "#ffff00"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.1398, 51.5134]
+      },
+      "properties": {
+        "aqi": 85,
+        "category": "Unhealthy for Sensitive Groups",
+        "pm25": 35.8,
+        "pm10": 52.1,
+        "no2": 68.4,
+        "o3": 48.2,
+        "station": "Industrial Zone",
+        "color": "#ff7e00"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.1158, 51.5014]
+      },
+      "properties": {
+        "aqi": 45,
+        "category": "Good",
+        "pm25": 12.3,
+        "pm10": 18.7,
+        "no2": 25.1,
+        "o3": 62.3,
+        "station": "Park Sensor",
+        "color": "#00e400"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.1208, 51.5094]
+      },
+      "properties": {
+        "aqi": 72,
+        "category": "Moderate",
+        "pm25": 28.1,
+        "pm10": 41.5,
+        "no2": 52.7,
+        "o3": 51.8,
+        "station": "City Center",
+        "color": "#ffff00"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.1338, 51.5024]
+      },
+      "properties": {
+        "aqi": 58,
+        "category": "Moderate",
+        "pm25": 18.9,
+        "pm10": 28.3,
+        "no2": 38.6,
+        "o3": 58.4,
+        "station": "Residential Area",
+        "color": "#ffff00"
+      }
+    }
+  ]
+}
