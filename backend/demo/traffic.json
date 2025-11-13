@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.0060, 40.7128]
+      },
+      "properties": {
+        "traffic_volume": 75.5,
+        "congestion_level": "moderate",
+        "street": "Broadway"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.0100, 40.7158]
+      },
+      "properties": {
+        "traffic_volume": 92.3,
+        "congestion_level": "high",
+        "street": "5th Avenue"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.0030, 40.7098]
+      },
+      "properties": {
+        "traffic_volume": 45.2,
+        "congestion_level": "low",
+        "street": "Wall Street"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.0080, 40.7188]
+      },
+      "properties": {
+        "traffic_volume": 88.7,
+        "congestion_level": "high",
+        "street": "Times Square"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-74.0020, 40.7058]
+      },
+      "properties": {
+        "traffic_volume": 61.4,
+        "congestion_level": "moderate",
+        "street": "FDR Drive"
+      }
+    }
+  ]
+}
