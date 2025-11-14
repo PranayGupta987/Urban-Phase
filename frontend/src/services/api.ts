@@ -93,7 +93,10 @@ export const api = {
     try {
       const url = `${API_BASE_URL}/simulate`;
       const payload = { vehicle_reduction: Number(request.vehicle_reduction) };
-      console.log("[API] runSimulation request:", { url, payload });
+      console.log("[API] runSimulation request (vehicle_reduction treated as fraction 0-1):", {
+        url,
+        payload,
+      });
 
       const response = await fetch(url, {
         method: "POST",

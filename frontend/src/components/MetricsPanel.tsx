@@ -1,6 +1,6 @@
-import { Activity, Wind, TrendingDown, Gauge } from 'lucide-react';
-import { SimulationResponse } from '../types';
-import styles from './MetricsPanel.module.css';
+import type { ReactNode } from "react";
+import { Activity, Wind, Gauge } from "lucide-react";
+import { SimulationResponse } from "../types";
 
 interface MetricsPanelProps {
   simulationData: SimulationResponse | null;
@@ -21,12 +21,10 @@ function MetricsPanel({ simulationData }: MetricsPanelProps) {
   const aqiAfter = m?.aqi_after ?? 0;
 
   return (
-    <div className={styles.panelRoot}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>Simulation Results</h2>
-      </div>
+    <div className="absolute right-8 top-[260px] w-[360px] rounded-2xl shadow-lg bg-white p-6">
+      <h2 className="text-xl font-bold mb-4 text-gray-800">Simulation Results</h2>
 
-      <div className={styles.grid}>
+      <div className="grid grid-cols-2 gap-4">
         <MetricCard
           icon={<Gauge size={20} />}
           label="Before Avg Speed"
@@ -71,7 +69,7 @@ function MetricsPanel({ simulationData }: MetricsPanelProps) {
 }
 
 interface MetricCardProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: number;
   unit: string;
@@ -79,15 +77,17 @@ interface MetricCardProps {
 
 function MetricCard({ icon, label, value, unit }: MetricCardProps) {
   return (
-    <div className={styles.card}>
-      <div className={styles.cardHeader}>
+    <div className="bg-gray-50 rounded-lg p-4">
+      <div className="flex items-center gap-2 mb-2 text-gray-600">
         {icon}
-        <span className={styles.label}>{label}</span>
+        <span className="text-sm font-medium">{label}</span>
       </div>
 
-      <div className={styles.valueRow}>
-        <span className={styles.value}>{value.toFixed(1)}</span>
-        {unit && <span className={styles.unit}>{unit}</span>}
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold text-gray-800">
+          {value.toFixed(1)}
+        </span>
+        {unit && <span className="text-xs text-gray-500">{unit}</span>}
       </div>
     </div>
   );

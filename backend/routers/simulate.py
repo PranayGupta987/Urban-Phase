@@ -132,15 +132,44 @@ def _get_weather_data() -> Dict[str, float]:
 
 @router.post("", response_model=SimulationResponse)
 async def run_simulation(request: SimulationRequest):
-    """Simulate traffic reduction scenario - accepts vehicle_reduction 0-100"""
+    """Simulate traffic reduction scenario.
+
+    vehicle_reduction may be provided either as:
+    - a fraction in [0, 1]
+    - a percentage in (1, 100], which will be converted to a fraction.
+    """
     try:
-        logger.info(f"Simulation request: vehicle_reduction={request.vehicle_reduction}")
-        
-        # Validate input
-        if request.vehicle_reduction < 0 or request.vehicle_reduction > 100:
+        logger.info("Simulation request received", extra={
+            "vehicle_reduction": request.vehicle_reduction,
+            "segment_ids": request.segment_ids,
+        })
+
+        # Normalise vehicle_reduction into a fraction in [0, 1]
+        raw_reduction = float(request.vehicle_reduction)
+        if raw_reduction < 0:
             raise HTTPException(
                 status_code=400,
-                detail="vehicle_reduction must be between 0 and 100"
+                detail="vehicle_reduction must be non-negative",
+            )
+
+        if raw_reduction > 1:
+            # Treat as percentage 0-100
+            if raw_reduction > 100:
+                raise HTTPException(
+                    status_code=400,
+                    detail="vehicle_reduction percentage cannot exceed 100",
+                )
+            reduction_factor = raw_reduction / 100.0
+            logger.info(
+                "vehicle_reduction provided as percent; normalised to fraction",
+                extra={"raw": raw_reduction, "fraction": reduction_factor},
+            )
+        else:
+            # Already a fraction 0-1
+            reduction_factor = raw_reduction
+            logger.info(
+                "vehicle_reduction provided as fraction",
+                extra={"fraction": reduction_factor},
             )
         
         # Check model availability (non-blocking)
@@ -149,6 +178,7 @@ async def run_simulation(request: SimulationRequest):
             logger.info("ML model not available, using heuristic predictions")
         
         # Load traffic data
+        logger.info("Fetching live traffic data for simulation")
         traffic_geojson = fetch_live_traffic()
         segments = _geojson_to_segments(traffic_geojson)
 
@@ -171,13 +201,14 @@ async def run_simulation(request: SimulationRequest):
                 status_code=400,
                 detail=f"No segments found matching IDs: {request.segment_ids}"
             )
-        
-        # Convert percentage to decimal factor
-        reduction_factor = float(request.vehicle_reduction) / 100.0
-        logger.info(f"Reduction factor: {reduction_factor}")
-        
+        logger.info("Computing simulation with reduction factor", extra={
+            "reduction_factor": reduction_factor,
+        })
+
         weather = _get_weather_data()
+        logger.info("Weather data for simulation", extra=weather)
         aqi_before = _get_aqi_value()
+        logger.info("Baseline AQI for simulation", extra={"aqi_before": aqi_before})
         
         before_segments = [s.copy() for s in segments]
         before_geojson = _create_geojson(before_segments)

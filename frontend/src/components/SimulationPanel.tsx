@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Play, RotateCcw, Loader2 } from 'lucide-react';
-import { api } from '../services/api';
-import { SimulationResponse } from '../types';
+import { useState } from "react";
+import { Play, RotateCcw, Loader2 } from "lucide-react";
+import { api } from "../services/api";
+import { SimulationResponse } from "../types";
 
 interface SimulationPanelProps {
   setSimulationData: (data: SimulationResponse | null) => void;
@@ -16,21 +16,23 @@ function SimulationPanel({ setSimulationData, setShowResults }: SimulationPanelP
   const handleSimulate = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('[SimulationPanel] Calling runSimulation with:', {
-        vehicle_reduction: vehicleReduction,
+      const fraction = Math.max(0, Math.min(1, vehicleReduction / 100));
+      console.log("[SimulationPanel] Calling runSimulation with:", {
+        slider_percent: vehicleReduction,
+        vehicle_reduction_fraction: fraction,
       });
       const result = await api.runSimulation({
-        vehicle_reduction: vehicleReduction,
+        vehicle_reduction: fraction,
       });
-      console.log('[SimulationPanel] Simulation response:', result);
+      console.log("[SimulationPanel] Simulation response:", result);
       setSimulationData(result);
       setShowResults(true);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Simulation failed';
+      const errorMessage = err instanceof Error ? err.message : "Simulation failed";
       setError(errorMessage);
-      console.error('[SimulationPanel] Simulation failed:', err);
+      console.error("[SimulationPanel] Simulation failed:", err);
       setShowResults(false);
     } finally {
       setLoading(false);
@@ -38,7 +40,7 @@ function SimulationPanel({ setSimulationData, setShowResults }: SimulationPanelP
   };
 
   const handleReset = () => {
-    console.log('[SimulationPanel] Resetting simulation');
+    console.log("[SimulationPanel] Resetting simulation");
     setSimulationData(null);
     setShowResults(false);
     setVehicleReduction(30);
@@ -46,7 +48,7 @@ function SimulationPanel({ setSimulationData, setShowResults }: SimulationPanelP
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-2xl p-6 w-96">
+    <div className="absolute right-8 top-16 w-[360px] rounded-2xl shadow-lg bg-white p-6">
       <h2 className="text-xl font-bold mb-4 text-gray-800">Scenario Simulation</h2>
 
       <div className="mb-6">
