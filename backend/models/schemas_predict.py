@@ -28,9 +28,9 @@ class SimulationRequest(BaseModel):
     """Request schema for traffic simulation"""
     vehicle_reduction: float = Field(
         ...,
-        ge=0.0,
-        le=1.0,
-        description="Vehicle reduction factor (0.0 to 1.0, e.g., 0.3 = 30% reduction)"
+        ge=0,
+        le=100,
+        description="Vehicle reduction percentage (0 to 100, e.g., 20 = 20% reduction)"
     )
     segment_ids: Optional[List[int]] = Field(
         None,

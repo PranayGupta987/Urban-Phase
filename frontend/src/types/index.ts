@@ -6,10 +6,15 @@ export interface TrafficFeature {
   };
   properties: {
     name?: string;
-    speed: number;
-    congestion: string;
-    volume: number;
+    speed?: number;
+    avg_speed?: number;
+    congestion?: string;
+    congestion_level?: number;
+    volume?: number;
+    vehicle_count?: number;
     capacity?: number;
+    segment_id?: number;
+    link_id?: string;
   };
 }
 
@@ -23,7 +28,7 @@ export interface AQIFeature {
     aqi: number;
     category: string;
     pm25: number;
-    pm10: number;
+    pm10?: number;
     no2?: number;
     o3?: number;
     station: string;
@@ -36,19 +41,16 @@ export interface GeoJSONCollection {
   features: (TrafficFeature | AQIFeature)[];
 }
 
-export interface Metrics {
-  avg_speed: number;
-  congestion_index: number;
-  co2_reduction: number;
-  aqi_improvement: number;
-}
-
 export interface SimulationResponse {
   before: GeoJSONCollection;
   after: GeoJSONCollection;
   metrics: {
-    before: Metrics;
-    after: Metrics;
+    avg_congestion_before: number;
+    avg_congestion_after: number;
+    avg_speed_before: number;
+    avg_speed_after: number;
+    aqi_before: number;
+    aqi_after: number;
   };
 }
 

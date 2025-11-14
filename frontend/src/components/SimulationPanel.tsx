@@ -1,31 +1,48 @@
 import { useState } from 'react';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { SimulationResponse } from '../types';
 
 interface SimulationPanelProps {
-  onSimulate: (data: SimulationResponse | null) => void;
+  setSimulationData: (data: SimulationResponse | null) => void;
+  setShowResults: (value: boolean) => void;
 }
 
-function SimulationPanel({ onSimulate }: SimulationPanelProps) {
+function SimulationPanel({ setSimulationData, setShowResults }: SimulationPanelProps) {
   const [vehicleReduction, setVehicleReduction] = useState(30);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSimulate = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      const result = await api.runSimulation({ vehicle_reduction: vehicleReduction });
-      onSimulate(result);
-    } catch (error) {
-      console.error('Simulation failed:', error);
+      console.log('[SimulationPanel] Calling runSimulation with:', {
+        vehicle_reduction: vehicleReduction,
+      });
+      const result = await api.runSimulation({
+        vehicle_reduction: vehicleReduction,
+      });
+      console.log('[SimulationPanel] Simulation response:', result);
+      setSimulationData(result);
+      setShowResults(true);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Simulation failed';
+      setError(errorMessage);
+      console.error('[SimulationPanel] Simulation failed:', err);
+      setShowResults(false);
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    onSimulate(null);
+    console.log('[SimulationPanel] Resetting simulation');
+    setSimulationData(null);
+    setShowResults(false);
     setVehicleReduction(30);
+    setError(null);
   };
 
   return (
@@ -44,6 +61,7 @@ function SimulationPanel({ onSimulate }: SimulationPanelProps) {
             value={vehicleReduction}
             onChange={(e) => setVehicleReduction(Number(e.target.value))}
             className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+            disabled={loading}
           />
           <span className="text-2xl font-bold text-primary-600 w-16 text-right">
             {vehicleReduction}%
@@ -54,19 +72,35 @@ function SimulationPanel({ onSimulate }: SimulationPanelProps) {
         </p>
       </div>
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
       <div className="space-y-3">
         <button
           onClick={handleSimulate}
           disabled={loading}
           className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
         >
-          <Play size={18} />
-          {loading ? 'Running...' : 'Run Simulation'}
+          {loading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              Running...
+            </>
+          ) : (
+            <>
+              <Play size={18} />
+              Run Simulation
+            </>
+          )}
         </button>
 
         <button
           onClick={handleReset}
-          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+          disabled={loading}
+          className="w-full bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
         >
           <RotateCcw size={18} />
           Reset

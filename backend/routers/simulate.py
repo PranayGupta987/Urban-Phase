@@ -8,78 +8,84 @@ from ml.model_loader import predict_from_dict, get_model
 from api_clients.traffic_api import fetch_live_traffic
 from api_clients.aqi_api import fetch_live_aqi
 from api_clients.weather_api import fetch_live_weather
-import json
+import logging
 from typing import Dict, Any, List
 
-router = APIRouter()
-
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/simulate")
 
 def _geojson_to_segments(geojson: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Convert GeoJSON FeatureCollection to list of segment dictionaries
-    
-    Args:
-        geojson: GeoJSON FeatureCollection
-    
-    Returns:
-        List of segment dictionaries with properties
-    """
+    """Convert GeoJSON FeatureCollection to list of segment dictionaries"""
     segments = []
+    
+    if not isinstance(geojson, dict) or geojson.get("type") != "FeatureCollection":
+        logger.error("Invalid GeoJSON structure")
+        return segments
     
     if "features" not in geojson:
         return segments
     
     for idx, feature in enumerate(geojson["features"]):
+        if not isinstance(feature, dict) or feature.get("type") != "Feature":
+            continue
+            
         props = feature.get("properties", {})
         geometry = feature.get("geometry", {})
         
-        # Extract segment ID or use index
-        segment_id = props.get("segment_id", props.get("id", idx + 1))
+        if not geometry or geometry.get("type") != "LineString":
+            continue
         
-        # Extract traffic properties
-        avg_speed = props.get("speed", props.get("avg_speed", 30.0))
-        vehicle_count = props.get("vehicle_count", props.get("volume", 100))
-        congestion_level = props.get("congestion_level", props.get("congestion", 0.5))
+        segment_id = props.get("segment_id", props.get("id", props.get("link_id", idx + 1)))
         
-        # Normalize congestion if it's a string
-        if isinstance(congestion_level, str):
-            congestion_map = {"low": 0.2, "moderate": 0.5, "high": 0.8}
-            congestion_level = congestion_map.get(congestion_level.lower(), 0.5)
+        avg_speed = float(props.get("speed", props.get("avg_speed", 30.0)))
+        vehicle_count = int(props.get("vehicle_count", props.get("volume", 100)))
+        congestion_level = props.get("congestion_level")
+        
+        if congestion_level is None:
+            congestion = props.get("congestion", "moderate")
+            if isinstance(congestion, str):
+                congestion_map = {"low": 0.2, "moderate": 0.5, "high": 0.8}
+                congestion_level = congestion_map.get(congestion.lower(), 0.5)
+            else:
+                congestion_level = float(congestion)
+        else:
+            congestion_level = float(congestion_level)
         
         segments.append({
-            "segment_id": segment_id,
+            "segment_id": int(segment_id),
             "geometry": geometry,
-            "avg_speed": float(avg_speed),
-            "vehicle_count": int(vehicle_count),
-            "congestion_level": float(congestion_level),
+            "avg_speed": avg_speed,
+            "vehicle_count": vehicle_count,
+            "congestion_level": congestion_level,
             "properties": props
         })
     
     return segments
 
-
 def _create_geojson(segments: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    Create GeoJSON FeatureCollection from segments
-    
-    Args:
-        segments: List of segment dictionaries
-    
-    Returns:
-        GeoJSON FeatureCollection
-    """
+    """Create GeoJSON FeatureCollection from segments - guaranteed valid"""
     features = []
     
     for seg in segments:
+        congestion_level = seg["congestion_level"]
+        if congestion_level < 0.4:
+            congestion = "low"
+        elif congestion_level < 0.7:
+            congestion = "moderate"
+        else:
+            congestion = "high"
+        
         feature = {
             "type": "Feature",
             "geometry": seg["geometry"],
             "properties": {
-                **seg.get("properties", {}),
                 "segment_id": seg["segment_id"],
                 "avg_speed": seg["avg_speed"],
                 "vehicle_count": seg["vehicle_count"],
-                "congestion_level": seg["congestion_level"]
+                "congestion_level": seg["congestion_level"],
+                "speed": seg["avg_speed"],
+                "congestion": congestion,
+                **{k: v for k, v in seg.get("properties", {}).items() if k not in ["segment_id", "avg_speed", "vehicle_count", "congestion_level", "speed", "congestion"]}
             }
         }
         features.append(feature)
@@ -89,35 +95,34 @@ def _create_geojson(segments: List[Dict[str, Any]]) -> Dict[str, Any]:
         "features": features
     }
 
-
 def _get_aqi_value() -> float:
     """Get current AQI value from API or mock data"""
     try:
         aqi_data = fetch_live_aqi()
-        if "features" in aqi_data and len(aqi_data["features"]) > 0:
-            # Get average AQI from first few features
+        if isinstance(aqi_data, dict) and "features" in aqi_data:
             aqi_values = [
                 f.get("properties", {}).get("aqi", 75)
                 for f in aqi_data["features"][:5]
-                if "aqi" in f.get("properties", {})
+                if isinstance(f, dict) and "aqi" in f.get("properties", {})
             ]
-            return float(sum(aqi_values) / len(aqi_values)) if aqi_values else 75.0
-    except:
-        pass
-    return 75.0  # Default AQI
-
+            if aqi_values:
+                return float(sum(aqi_values) / len(aqi_values))
+    except Exception as e:
+        logger.error(f"Error getting AQI: {e}", exc_info=True)
+    return 75.0
 
 def _get_weather_data() -> Dict[str, float]:
     """Get current weather data"""
     try:
         weather = fetch_live_weather()
         return {
-            "temperature": weather.get("temp", 25.0),
-            "humidity": weather.get("humidity", 70.0),
-            "wind_speed": weather.get("wind_speed", 10.0) if "wind_speed" in weather else 10.0,
-            "rainfall": 0.0  # Weather API doesn't provide rainfall in current implementation
+            "temperature": float(weather.get("temp", weather.get("temperature", 25.0))),
+            "humidity": float(weather.get("humidity", 70.0)),
+            "wind_speed": float(weather.get("wind_speed", 10.0)),
+            "rainfall": float(weather.get("rainfall", 0.0))
         }
-    except:
+    except Exception as e:
+        logger.error(f"Error getting weather: {e}", exc_info=True)
         return {
             "temperature": 25.0,
             "humidity": 70.0,
@@ -125,42 +130,39 @@ def _get_weather_data() -> Dict[str, float]:
             "rainfall": 0.0
         }
 
-
-@router.post("/simulate", response_model=SimulationResponse)
+@router.post("", response_model=SimulationResponse)
 async def run_simulation(request: SimulationRequest):
-    """
-    Simulate traffic reduction scenario
-    
-    Args:
-        request: SimulationRequest with vehicle_reduction and optional segment_ids
-    
-    Returns:
-        SimulationResponse with before/after GeoJSON and metrics
-    """
+    """Simulate traffic reduction scenario - accepts vehicle_reduction 0-100"""
     try:
-        # Check if model is available
-        try:
-            get_model()
-        except FileNotFoundError:
+        logger.info(f"Simulation request: vehicle_reduction={request.vehicle_reduction}")
+        
+        # Validate input
+        if request.vehicle_reduction < 0 or request.vehicle_reduction > 100:
             raise HTTPException(
-                status_code=503,
-                detail={
-                    "error": "Model not trained",
-                    "message": "Please train the model first using 'python backend/ml/train_model.py'"
-                }
+                status_code=400,
+                detail="vehicle_reduction must be between 0 and 100"
             )
+        
+        # Check model availability (non-blocking)
+        model = get_model()
+        if model is None:
+            logger.info("ML model not available, using heuristic predictions")
         
         # Load traffic data
         traffic_geojson = fetch_live_traffic()
         segments = _geojson_to_segments(traffic_geojson)
-        
+
         if not segments:
-            raise HTTPException(
-                status_code=500,
-                detail="No traffic segments found in data"
-            )
+            logger.warning("No segments found in live traffic; retrying fallback")
+            traffic_geojson = fetch_live_traffic()
+            segments = _geojson_to_segments(traffic_geojson)
+            if not segments:
+                logger.error("Simulation has no traffic segments even after fallback")
+                raise HTTPException(
+                    status_code=500,
+                    detail="No traffic segments found in data"
+                )
         
-        # Filter segments if segment_ids specified
         if request.segment_ids:
             segments = [s for s in segments if s["segment_id"] in request.segment_ids]
         
@@ -170,30 +172,28 @@ async def run_simulation(request: SimulationRequest):
                 detail=f"No segments found matching IDs: {request.segment_ids}"
             )
         
-        # Get weather and AQI data
+        # Convert percentage to decimal factor
+        reduction_factor = float(request.vehicle_reduction) / 100.0
+        logger.info(f"Reduction factor: {reduction_factor}")
+        
         weather = _get_weather_data()
         aqi_before = _get_aqi_value()
         
-        # Create BEFORE state
-        before_segments = segments.copy()
+        before_segments = [s.copy() for s in segments]
         before_geojson = _create_geojson(before_segments)
         
-        # Calculate BEFORE metrics
         avg_congestion_before = sum(s["congestion_level"] for s in before_segments) / len(before_segments)
         avg_speed_before = sum(s["avg_speed"] for s in before_segments) / len(before_segments)
         
-        # Simulate AFTER state
         after_segments = []
         
         for seg in segments:
-            # Apply vehicle reduction
-            new_vehicle_count = int(seg["vehicle_count"] * (1 - request.vehicle_reduction))
+            new_vehicle_count = max(1, int(seg["vehicle_count"] * (1 - reduction_factor)))
             
-            # Prepare input for ML prediction
             input_dict = {
                 "avg_speed": seg["avg_speed"],
                 "vehicle_count": new_vehicle_count,
-                "pm25": aqi_before * 0.5,  # Rough conversion from AQI to PM2.5
+                "pm25": aqi_before * 0.5,
                 "temperature": weather["temperature"],
                 "humidity": weather["humidity"],
                 "wind_speed": weather["wind_speed"],
@@ -201,17 +201,14 @@ async def run_simulation(request: SimulationRequest):
                 "segment_id": seg["segment_id"]
             }
             
-            # Predict new congestion level
             try:
                 new_congestion = predict_from_dict(input_dict)
-            except:
-                # Fallback: simple heuristic
-                new_congestion = max(0.0, min(1.0, seg["congestion_level"] * (1 - request.vehicle_reduction * 0.5)))
+            except Exception as e:
+                logger.warning(f"Prediction failed: {e}, using fallback")
+                new_congestion = max(0.0, min(1.0, seg["congestion_level"] * (1 - reduction_factor * 0.5)))
             
-            # Predict new speed: speed = max(old_speed * (1 - congestion), 5)
-            new_speed = max(5.0, seg["avg_speed"] * (1 - new_congestion))
+            new_speed = max(5.0, seg["avg_speed"] * (1 - new_congestion * 0.3))
             
-            # Create new segment
             new_seg = seg.copy()
             new_seg["avg_speed"] = new_speed
             new_seg["vehicle_count"] = new_vehicle_count
@@ -219,18 +216,14 @@ async def run_simulation(request: SimulationRequest):
             
             after_segments.append(new_seg)
         
-        # Create AFTER GeoJSON
         after_geojson = _create_geojson(after_segments)
         
-        # Calculate AFTER metrics
         avg_congestion_after = sum(s["congestion_level"] for s in after_segments) / len(after_segments)
         avg_speed_after = sum(s["avg_speed"] for s in after_segments) / len(after_segments)
         
-        # Predict new AQI: new_aqi = old_aqi * (1 + congestion_level * 0.2)
         avg_congestion_impact = (avg_congestion_before + avg_congestion_after) / 2
-        aqi_after = aqi_before * (1 + avg_congestion_impact * 0.2)
+        aqi_after = max(0, aqi_before * (1 - avg_congestion_impact * 0.1))
         
-        # Create metrics
         metrics = Metrics(
             avg_congestion_before=round(avg_congestion_before, 3),
             avg_congestion_after=round(avg_congestion_after, 3),
@@ -239,6 +232,8 @@ async def run_simulation(request: SimulationRequest):
             aqi_before=round(aqi_before, 1),
             aqi_after=round(aqi_after, 1)
         )
+        
+        logger.info(f"Simulation complete: {len(after_segments)} segments processed")
         
         return SimulationResponse(
             before=before_geojson,
@@ -249,6 +244,7 @@ async def run_simulation(request: SimulationRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Simulation error: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail={

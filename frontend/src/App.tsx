@@ -8,6 +8,7 @@ import { SimulationResponse } from './types';
 function App() {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [activeLayer, setActiveLayer] = useState<'traffic' | 'aqi'>('traffic');
+  const [showResults, setShowResults] = useState(false);
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-gray-900">
@@ -31,11 +32,16 @@ function App() {
         </div>
 
         <div className="absolute bottom-6 left-80 right-6 flex gap-4 pointer-events-none">
-          <div className="pointer-events-auto">
-            <MetricsPanel simulationData={simulationData} />
-          </div>
+          {showResults && (
+            <div className="pointer-events-auto">
+              <MetricsPanel simulationData={simulationData} />
+            </div>
+          )}
           <div className="pointer-events-auto ml-auto">
-            <SimulationPanel onSimulate={setSimulationData} />
+            <SimulationPanel
+              setSimulationData={setSimulationData}
+              setShowResults={setShowResults}
+            />
           </div>
         </div>
       </div>

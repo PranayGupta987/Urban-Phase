@@ -1,56 +1,69 @@
 import { Activity, Wind, TrendingDown, Gauge } from 'lucide-react';
 import { SimulationResponse } from '../types';
+import styles from './MetricsPanel.module.css';
 
 interface MetricsPanelProps {
   simulationData: SimulationResponse | null;
 }
 
 function MetricsPanel({ simulationData }: MetricsPanelProps) {
-  if (!simulationData) return null;
+  if (!simulationData || !simulationData.metrics) {
+    return null;
+  }
 
-  const { metrics } = simulationData;
+  const m = simulationData.metrics;
+
+  const avgSpeedBefore = m?.avg_speed_before ?? 0;
+  const avgSpeedAfter = m?.avg_speed_after ?? 0;
+  const congestionBefore = m?.avg_congestion_before ?? 0;
+  const congestionAfter = m?.avg_congestion_after ?? 0;
+  const aqiBefore = m?.aqi_before ?? 0;
+  const aqiAfter = m?.aqi_after ?? 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl">
-      <h2 className="text-xl font-bold mb-4 text-gray-800">Simulation Results</h2>
+    <div className={styles.panelRoot}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Simulation Results</h2>
+      </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className={styles.grid}>
         <MetricCard
           icon={<Gauge size={20} />}
-          label="Avg Speed"
-          before={metrics.before.avg_speed}
-          after={metrics.after.avg_speed}
+          label="Before Avg Speed"
+          value={avgSpeedBefore}
           unit="km/h"
-          improve={metrics.after.avg_speed > metrics.before.avg_speed}
+        />
+        <MetricCard
+          icon={<Gauge size={20} />}
+          label="After Avg Speed"
+          value={avgSpeedAfter}
+          unit="km/h"
         />
 
         <MetricCard
           icon={<Activity size={20} />}
-          label="Congestion Index"
-          before={metrics.before.congestion_index}
-          after={metrics.after.congestion_index}
+          label="Before Congestion"
+          value={congestionBefore}
           unit=""
-          improve={metrics.after.congestion_index < metrics.before.congestion_index}
         />
-
         <MetricCard
-          icon={<TrendingDown size={20} />}
-          label="CO₂ Reduction"
-          before={0}
-          after={metrics.after.co2_reduction}
-          unit="%"
-          improve={true}
-          showDelta={false}
+          icon={<Activity size={20} />}
+          label="After Congestion"
+          value={congestionAfter}
+          unit=""
         />
 
         <MetricCard
           icon={<Wind size={20} />}
-          label="AQI Improvement"
-          before={0}
-          after={metrics.after.aqi_improvement}
-          unit="%"
-          improve={true}
-          showDelta={false}
+          label="Before AQI"
+          value={aqiBefore}
+          unit=""
+        />
+        <MetricCard
+          icon={<Wind size={20} />}
+          label="After AQI"
+          value={aqiAfter}
+          unit=""
         />
       </div>
     </div>
@@ -60,40 +73,22 @@ function MetricsPanel({ simulationData }: MetricsPanelProps) {
 interface MetricCardProps {
   icon: React.ReactNode;
   label: string;
-  before: number;
-  after: number;
+  value: number;
   unit: string;
-  improve: boolean;
-  showDelta?: boolean;
 }
 
-function MetricCard({ icon, label, before, after, unit, improve, showDelta = true }: MetricCardProps) {
-  const delta = after - before;
-  const percentChange = before !== 0 ? ((delta / before) * 100) : 0;
-
+function MetricCard({ icon, label, value, unit }: MetricCardProps) {
   return (
-    <div className="bg-gray-50 rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-2 text-gray-600">
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
         {icon}
-        <span className="text-sm font-medium">{label}</span>
+        <span className={styles.label}>{label}</span>
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold text-gray-800">
-          {after.toFixed(1)}{unit}
-        </span>
-        {showDelta && (
-          <span className={`text-sm font-medium ${improve ? 'text-green-600' : 'text-red-600'}`}>
-            {improve ? '↑' : '↓'} {Math.abs(percentChange).toFixed(1)}%
-          </span>
-        )}
+      <div className={styles.valueRow}>
+        <span className={styles.value}>{value.toFixed(1)}</span>
+        {unit && <span className={styles.unit}>{unit}</span>}
       </div>
-
-      {showDelta && (
-        <div className="text-xs text-gray-500 mt-1">
-          From {before.toFixed(1)}{unit}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,8 +1,15 @@
 import os
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import status, data, simulate, predict
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -28,9 +35,10 @@ async def startup_event():
     try:
         from ml.model_loader import get_model
         model = get_model()
-        print("✓ ML model loaded successfully")
-    except FileNotFoundError:
-        print("⚠ ML model not found. Train the model first using 'python backend/ml/train_model.py'")
+        if model:
+            print("✓ ML model loaded successfully")
+        else:
+            print("⚠ ML model not found. Using heuristic fallback.")
     except Exception as e:
         print(f"⚠ Error loading ML model: {e}")
 

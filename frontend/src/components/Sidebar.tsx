@@ -7,48 +7,44 @@ interface SidebarProps {
 
 function Sidebar({ activeLayer, onLayerChange }: SidebarProps) {
   return (
-    <div className="w-64 bg-gray-800 text-white p-4 shadow-xl border-r border-gray-700 flex flex-col">
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <Layers size={20} className="text-primary-400" />
-          <h2 className="text-lg font-semibold">Map Layers</h2>
+    <aside className="w-68 bg-slate-950/90 text-slate-100 px-6 py-6 border-r border-slate-800/80 shadow-xl shadow-black/50 backdrop-blur-2xl flex flex-col gap-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Layers size={20} className="text-primary-300" />
+            <h2 className="text-sm font-semibold tracking-wide uppercase text-slate-300">Layers</h2>
+          </div>
+          <p className="text-[11px] text-slate-500">Switch between traffic and air quality views.</p>
         </div>
-        <p className="text-xs text-gray-400">Toggle data visualization</p>
       </div>
 
-      <div className="space-y-3">
+      <div className="bg-slate-900/60 border border-slate-700/70 rounded-2xl p-2 flex items-center gap-1">
         <button
           onClick={() => onLayerChange('traffic')}
-          className={`w-full flex items-center gap-3 p-4 rounded-lg transition-all ${
+          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
             activeLayer === 'traffic'
-              ? 'bg-primary-600 shadow-lg'
-              : 'bg-gray-700 hover:bg-gray-600'
+              ? 'bg-gradient-to-tr from-primary-600 to-primary-400 text-white shadow-md shadow-primary-900/60'
+              : 'text-slate-400 hover:bg-slate-800/90'
           }`}
         >
-          <MapPin size={20} />
-          <div className="text-left flex-1">
-            <div className="font-medium">Traffic Flow</div>
-            <div className="text-xs text-gray-300">Real-time congestion</div>
-          </div>
+          <MapPin size={16} className={activeLayer === 'traffic' ? 'text-white' : 'text-slate-500'} />
+          <span>Traffic</span>
         </button>
 
         <button
           onClick={() => onLayerChange('aqi')}
-          className={`w-full flex items-center gap-3 p-4 rounded-lg transition-all ${
+          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
             activeLayer === 'aqi'
-              ? 'bg-primary-600 shadow-lg'
-              : 'bg-gray-700 hover:bg-gray-600'
+              ? 'bg-gradient-to-tr from-primary-600 to-primary-400 text-white shadow-md shadow-primary-900/60'
+              : 'text-slate-400 hover:bg-slate-800/90'
           }`}
         >
-          <Wind size={20} />
-          <div className="text-left flex-1">
-            <div className="font-medium">Air Quality</div>
-            <div className="text-xs text-gray-300">AQI monitoring</div>
-          </div>
+          <Wind size={16} className={activeLayer === 'aqi' ? 'text-white' : 'text-slate-500'} />
+          <span>Air Quality</span>
         </button>
       </div>
 
-      <div className="mt-8 p-4 bg-gray-900 rounded-lg">
+      <div className="mt-2 p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 shadow-inner shadow-black/40">
         <h3 className="font-semibold mb-3 text-sm">Legend</h3>
         {activeLayer === 'traffic' ? (
           <div className="space-y-2 text-sm">
@@ -82,7 +78,7 @@ function Sidebar({ activeLayer, onLayerChange }: SidebarProps) {
           </div>
         )}
       </div>
-    </div>
+    </aside>
   );
 }
 
